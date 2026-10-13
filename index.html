@@ -80,6 +80,26 @@
   </section>
 </main>
 
+$("refresh").addEventListener("click", refreshRate);
+renderHistory();
+
+async function testSlowResponse() {
+  const status = document.getElementById("status");
+  const rate = document.getElementById("rate");
+
+  const oldRate = rate.textContent;
+  status.textContent = "시험 중: 외부 응답 지연을 재현하고 있습니다.";
+
+  await new Promise(resolve => setTimeout(resolve, 5000));
+
+  rate.textContent = oldRate;
+  status.textContent =
+    "합성 시험: 응답 지연 감지. 마지막 정상값을 유지했습니다. 다시 시도해 주세요.";
+}
+</script>
+</body>
+</html>
+
 <script>
 const API = "https://api.frankfurter.dev/v2/rates?base=USD&quotes=KRW";
 const KEY = "today-real-info-board-v1";
