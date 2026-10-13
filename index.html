@@ -62,6 +62,7 @@
     <p>출처: <a href="https://frankfurter.dev/" target="_blank"
       rel="noopener noreferrer">Frankfurter 환율 API</a></p>
     <button id="refresh">실제 데이터 조회</button>
+    <button id="testSlow" type="button">느린 응답 시험</button>
   </section>
 
   <section>
@@ -81,6 +82,7 @@
 </main>
 
 $("refresh").addEventListener("click", refreshRate);
+$("testSlow").addEventListener("click", testSlowResponse);
 renderHistory();
 
 async function testSlowResponse() {
