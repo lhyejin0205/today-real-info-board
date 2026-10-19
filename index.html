@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>오늘의 진짜 정보판 v1 - 달 모양</title>
+  <style>
+    body { font-family: sans-serif; max-width: 560px; margin: 40px auto; padding: 0 16px; }
+    .value { font-size: 48px; font-weight: bold; }
+    .cond { color: #555; margin-top: 4px; }
+    table { border-collapse: collapse; width: 100%; margin-top: 16px; }
+    th, td { border: 1px solid #ccc; padding: 8px; text-align: left; }
+    th { background: #f3f3f3; width: 35%; }
+    .ok { color: green; }
+    .ng { color: red; }
+  </style>
+</head>
+<body>
+  <h1>오늘의 달 모양 (대전)</h1>
+  <div class="value" id="screenValue">불러오는 중…</div>
+  <div class="cond" id="phase">-</div>
+
+  <table>
+    <tr><th>단위</th><td id="unit">-</td></tr>
+    <tr><th>출처</th><td id="source">-</td></tr>
+    <tr><th>출처 시각</th><td id="sourceTime">-</td></tr>
+    <tr><th>조회 시각</th><td id="fetchedAt">-</td></tr>
+    <tr><th>기준 시간대</th><td id="tz">-</td></tr>
+  </table>
+
+  <h2>값 대조</h2>
+  <table>
+    <tr><th>원자료 (API 응답)</th><td id="rawValue">-</td></tr>
+    <tr><th>저장값</th><td id="savedValue">-</td></tr>
+    <tr><th>화면값</th><td id="shownValue">-</td></tr>
+    <tr><th>일치 여부</th><td id="match">-</td></tr>
+  </table>
+
+<script>
+// 달 모양 영어 이름 → 한국어
+const PHASE_KO = {
+  "New Moon": "삭 (달이 안 보임)",
+  "Waxing Crescent": "초승달",
+  "First Quarter": "상현달",
+  "Waxing Gibbous": "차오르는 볼록달",
+  "Full Moon": "보름달",
+  "Waning Gibbous": "기우는 볼록달",
+  "Last Quarter": "하현달",
+  "Waning Crescent": "그믐달"
+};
+
+function pad(n) { return String(n).padStart(2, "0"); }
+
+async function load() {
+  // 오늘 날짜 (한국 시간) 예: 2026-10-19
+  const today = new Date().toLocaleDateString("sv-SE", { timeZone: "Asia/Seoul" });
+  const API_URL = "https://aa.usno.navy.mil/api/rstt/oneday?date=" + today
+    + "&coords=36.35,127.38&tz=9";
+
+  // 1) 원자료: API 응답 그대로
+  const res = await fetch(API_URL);
+  if (!res.ok) throw new Error("서버 응답 오류 " + res.status);
+  const raw = await res.json();
+  const d = raw.properties.data;
+
+  // 2) 저장값: 필요한 항목만 뽑아서 브라우저에 저장
+  const saved = {
+    value: parseInt(d.fracillum),
+    unit: "% (달의 밝은 부분 비율)",
+    phase: PHASE_KO[d.curphase] || d.curphase,
+    source: "USNO (미국 해군천문대)",
+    sourceTime: d.year + "-" + pad(d.month) + "-" + pad(d.day) + " (이 날짜 기준 데이터)",
+    fetchedAt: new Date().toLocaleString("ko-KR", { timeZone: "Asia/Seoul" }),
+    tz: "UTC+" + d.tz + " (한국 시간, KST)"
+  };
+  localStorage.setItem("lastGood", JSON.stringify(saved));
+
+  // 3) 화면값: 저장값을 다시 읽어서 표시
+  const shown = JSON.parse(localStorage.getItem("lastGood"));
+  document.getElementById("screenValue").textContent = shown.value + " %";
+  document.getElementById("phase").textContent = "달 모양: " + shown.phase;
+  document.getElementById("unit").textContent = shown.unit;
+  document.getElementById("source").textContent = shown.source;
+  document.getElementById("sourceTime").textContent = shown.sourceTime;
+  document.getElementById("fetchedAt").textContent = shown.fetchedAt + " (KST)";
+  document.getElementById("tz").textContent = shown.tz;
+
+  // 4) 세 값 대조
+  document.getElementById("rawValue").textContent = d.fracillum;
+  document.getElementById("savedValue").textContent = saved.value;
+  document.getElementById("shownValue").textContent = shown.value;
+  const same = d.fracillum === saved.value + "%" && saved.value === shown.value;
+  const m = document.getElementById("match");
+  m.textContent = same ? "일치" : "불일치";
+  m.className = same ? "ok" : "ng";
+}
+
+load().catch(err => {
+  document.getElementById("screenValue").textContent = "오류: " + err.message;
+  console.error(err);
+});
+</script>
+</body>
+</html>
