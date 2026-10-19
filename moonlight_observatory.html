@@ -1,0 +1,350 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="theme-color" content="#090d25">
+<title>달빛 관측소 | 날짜마다 달라지는 달</title>
+<style>
+:root{
+  color-scheme:dark;--night:#080d24;--night2:#171b40;--ink:#f4f2ff;--muted:#b6badb;
+  --gold:#fff0bf;--lav:#c5baff;--line:rgba(213,207,255,.19);--mint:#9debd0;
+  --amber:#ffd18b;--rose:#ffadbd
+}
+*{box-sizing:border-box}
+html{min-height:100%;background:var(--night)}
+body{margin:0;min-height:100vh;color:var(--ink);font-family:"Malgun Gothic","맑은 고딕",sans-serif;line-height:1.65;
+ background:radial-gradient(ellipse at 18% 8%,rgba(106,91,190,.25),transparent 34%),
+ radial-gradient(ellipse at 86% 46%,rgba(63,87,169,.2),transparent 38%),
+ linear-gradient(155deg,#080d24 0%,#151a3c 52%,#30204b 100%);background-attachment:fixed}
+.sky{position:fixed;inset:0;overflow:hidden;pointer-events:none;z-index:0}
+.star{position:absolute;display:block;width:2px;height:2px;border-radius:50%;background:#fff6d8;box-shadow:0 0 7px 1px rgba(255,240,191,.7);animation:twinkle var(--dur,3s) ease-in-out infinite alternate;animation-delay:var(--delay,0s)}
+.star.big{width:4px;height:4px;box-shadow:0 0 12px 2px rgba(255,240,191,.65)}
+@keyframes twinkle{0%{opacity:.22;transform:scale(.7)}100%{opacity:1;transform:scale(1.35)}}
+.shooting-star{position:absolute;width:90px;height:1px;background:linear-gradient(90deg,rgba(255,255,255,0),rgba(210,205,255,.85),rgba(255,255,255,0));transform:rotate(-35deg);animation:shoot 9s linear infinite;opacity:0}
+@keyframes shoot{0%,70%{opacity:0;transform:translate(0,0) rotate(-35deg)}72%{opacity:1}85%{opacity:0;transform:translate(-180px,110px) rotate(-35deg)}100%{opacity:0}}
+.wrap{position:relative;z-index:1;width:min(920px,100%);margin:auto;padding:34px 20px 70px}
+header{text-align:center;padding:20px 0 28px}
+.eyebrow{color:var(--lav);font-size:12px;letter-spacing:.22em;text-transform:uppercase}
+h1,h2,h3,.big-number{font-family:"Batang","바탕","Noto Serif KR",serif;font-weight:400}
+h1{font-size:clamp(30px,5vw,46px);letter-spacing:.04em;color:var(--gold);margin:7px 0 4px;text-shadow:0 0 28px rgba(255,240,191,.2)}
+.subtitle{margin:0;color:var(--muted);font-size:14px}
+.date-navigation{display:flex;justify-content:center;align-items:center;gap:8px;flex-wrap:wrap;margin-top:22px}
+button,input{font:inherit}
+button{border:1px solid rgba(197,186,255,.34);background:linear-gradient(135deg,rgba(92,83,154,.65),rgba(35,43,87,.9));color:var(--ink);padding:9px 14px;border-radius:999px;cursor:pointer;transition:transform .18s,border-color .18s,box-shadow .18s}
+button:hover{transform:translateY(-2px);border-color:rgba(255,240,191,.7);box-shadow:0 5px 20px rgba(147,131,255,.17)}
+button:focus-visible,input:focus-visible{outline:2px solid var(--gold);outline-offset:3px}
+input[type=date]{max-width:165px;color:var(--ink);background:rgba(16,22,54,.9);border:1px solid var(--line);padding:9px 10px;border-radius:12px}
+.card{border:1px solid var(--line);border-radius:24px;padding:clamp(18px,4vw,30px);margin:18px 0;background:linear-gradient(135deg,rgba(67,66,125,.38),rgba(17,26,62,.76));box-shadow:0 18px 48px rgba(0,0,0,.18),inset 0 1px rgba(255,255,255,.05);backdrop-filter:blur(12px)}
+.card-title{font-size:19px;color:#e8e0ff;margin:0 0 16px}
+.moon-layout{display:grid;grid-template-columns:minmax(190px, .85fr) minmax(0,1.3fr);gap:28px;align-items:center}
+.moon-stage{min-height:260px;display:grid;place-items:center;position:relative;overflow:hidden;border-radius:20px;background:radial-gradient(circle,rgba(139,127,218,.15),transparent 65%)}
+.moon-stage:after{content:"";position:absolute;width:210px;height:210px;border-radius:50%;border:1px solid rgba(219,211,255,.08);box-shadow:0 0 55px rgba(162,150,255,.08);pointer-events:none}
+.moon-svg{width:min(220px,80%);height:auto;overflow:visible;filter:drop-shadow(0 0 18px rgba(255,235,170,.2));position:relative;z-index:1}
+.big-number{font-size:clamp(44px,8vw,68px);line-height:1.1;color:var(--gold);text-shadow:0 0 24px rgba(255,240,191,.13)}
+.unit{font-size:22px;color:#d7d2f7;margin-left:5px}
+.phase{font-size:22px;color:#e5ddff;margin:8px 0}
+.muted{color:var(--muted);font-size:14px}
+.stats{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;margin-top:20px}
+.stat{border:1px solid rgba(210,204,255,.13);background:rgba(255,255,255,.035);border-radius:15px;padding:13px}
+.stat-label{display:block;font-size:12px;color:var(--muted);margin-bottom:4px}
+.stat-value{font-size:15px;overflow-wrap:anywhere}
+.status{display:inline-flex;align-items:center;gap:8px;border:1px solid currentColor;border-radius:99px;padding:4px 11px;font-size:12px;margin-top:12px}
+.status:before{content:"";width:7px;height:7px;border-radius:50%;background:currentColor;box-shadow:0 0 8px currentColor}
+.ok{color:var(--mint)}.warn{color:var(--amber)}.bad{color:var(--rose)}
+.notice{border-left:3px solid var(--amber);border-radius:8px;padding:12px 14px;background:rgba(255,209,139,.07);color:#f1e6d3;font-size:14px;margin-top:14px}
+.error{border-left-color:var(--rose);background:rgba(255,173,189,.07)}
+table{border-collapse:collapse;width:100%;margin-top:12px}
+th,td{text-align:left;padding:11px 9px;border-bottom:1px solid var(--line);vertical-align:top;overflow-wrap:anywhere}
+th{font-size:13px;font-weight:400;color:var(--muted)}
+td{font-size:14px}
+.scroll{overflow-x:auto;border-radius:12px}
+.history-table th{background:rgba(161,148,239,.12);white-space:nowrap}
+.history-table td{white-space:nowrap}
+details summary{cursor:pointer;color:#ded8ff}
+details{margin-top:18px}
+.actions{display:flex;gap:8px;flex-wrap:wrap}
+.small{font-size:12px;color:var(--muted)}
+footer{text-align:center;color:#9299c5;font-size:12px;padding:22px 0 0}
+a{color:#d2c9ff}
+@media(max-width:620px){.wrap{padding:22px 13px 50px}.moon-layout{grid-template-columns:1fr;gap:10px}.moon-stage{min-height:220px}.moon-svg{width:180px}.card{border-radius:19px}.stats{gap:8px}.stat{padding:11px}th,td{padding:9px 7px}}
+@media(prefers-reduced-motion:reduce){*,*:before,*:after{animation:none!important;transition:none!important}}
+</style>
+</head>
+<body>
+<div class="sky" id="sky" aria-hidden="true"></div>
+<main class="wrap">
+<header>
+  <div class="eyebrow">✦ Lunar observatory ✦</div>
+  <h1>달빛 관측소</h1>
+  <p class="subtitle">날짜마다 달라지는 달의 얼굴을 만나 보세요</p>
+  <div class="date-navigation" aria-label="관측 날짜 선택">
+    <button id="prevBtn" type="button">← 이전 날</button>
+    <input id="moonDate" type="date" aria-label="관측 날짜 선택">
+    <button id="nextBtn" type="button">다음 날 →</button>
+    <button id="todayBtn" type="button">오늘</button>
+  </div>
+</header>
+
+<section class="card" aria-labelledby="moonHeading">
+  <h2 class="card-title" id="moonHeading">오늘의 달</h2>
+  <div id="moonContent" aria-live="polite"><p class="muted">달빛 정보를 불러오는 중…</p></div>
+</section>
+
+<section class="card">
+  <h2 class="card-title">달 모양 달력 기록</h2>
+  <p class="muted">날짜를 바꾸면 해당 날짜의 실제 달 위상과 밝은 부분 비율을 조회합니다. 관측 기록은 이 브라우저에 저장됩니다.</p>
+  <div class="scroll">
+    <table class="history-table">
+      <thead><tr><th>날짜</th><th>달 모양</th><th>밝은 부분</th><th>조회 상태</th></tr></thead>
+      <tbody id="historyRows"><tr><td colspan="4">아직 기록이 없어요.</td></tr></tbody>
+    </table>
+  </div>
+  <div class="actions" style="margin-top:14px">
+    <button id="refreshBtn" type="button">이 날짜 다시 조회</button>
+    <button id="clearHistoryBtn" type="button">이 브라우저 기록 지우기</button>
+  </div>
+  <p class="small">참고: 브라우저 기록은 이 기기에 저장되며, 웹사이트의 서버나 GitHub 저장소에 자동 업로드되지는 않습니다.</p>
+</section>
+
+<section class="card">
+  <h2 class="card-title">데이터 출처와 상태</h2>
+  <div id="sourceStatus" class="muted">조회 대기 중…</div>
+  <p class="muted">출처: <a href="https://aa.usno.navy.mil/data/RS_OneDay" target="_blank" rel="noopener noreferrer">미국 해군천문대(USNO) 달 위상 API 안내</a></p>
+  <p class="small">실제 달 위상 API가 연결되지 않거나 응답하지 않으면 임의의 실제값을 표시하지 않고 오류 안내를 보여 줍니다.</p>
+</section>
+
+<details class="card">
+  <summary>실패 상황 시험 (합성 데이터)</summary>
+  <p class="muted">아래 시험은 연습용 가짜 데이터이며 실제 달 관측값이나 기록에 섞이지 않습니다.</p>
+  <div class="actions">
+    <button type="button" data-test="timeout">느린 응답</button>
+    <button type="button" data-test="auth">접근 거절 (401)</button>
+    <button type="button" data-test="rate">요청 제한 (429)</button>
+    <button type="button" data-test="offline">인터넷 끊김</button>
+    <button type="button" data-test="schema">데이터 형식 오류</button>
+  </div>
+  <div id="testResult" class="notice" hidden></div>
+</details>
+<footer>☾ 별빛 아래에서 기록하는 달의 변화 ✦</footer>
+</main>
+
+<script>
+"use strict";
+const API_BASE = "https://aa.usno.navy.mil/api/rstt/oneday";
+const $ = (id) => document.getElementById(id);
+const PHASE_KO = {
+  "New Moon":"삭 · 달이 거의 보이지 않아요",
+  "Waxing Crescent":"초승달 · 오른쪽부터 차올라요",
+  "First Quarter":"상현달 · 오른쪽 절반이 밝아요",
+  "Waxing Gibbous":"차오르는 볼록달",
+  "Full Moon":"보름달 · 달 전체가 밝아요",
+  "Waning Gibbous":"기우는 볼록달",
+  "Last Quarter":"하현달 · 왼쪽 절반이 밝아요",
+  "Waning Crescent":"그믐달 · 가느다랗게 남아요"
+};
+const phaseOrder = ["New Moon","Waxing Crescent","First Quarter","Waxing Gibbous","Full Moon","Waning Gibbous","Last Quarter","Waning Crescent"];
+let currentRequest = 0;
+let cache = readCache();
+
+function localDateString(date = new Date()) {
+  const parts = new Intl.DateTimeFormat("en-CA", {
+    timeZone:"Asia/Seoul",year:"numeric",month:"2-digit",day:"2-digit"
+  }).formatToParts(date);
+  const p = Object.fromEntries(parts.map(x => [x.type,x.value]));
+  return `${p.year}-${p.month}-${p.day}`;
+}
+function parseDate(s) {
+  const [y,m,d] = s.split("-").map(Number);
+  return new Date(Date.UTC(y,m-1,d,12));
+}
+function shiftDate(s, days) {
+  const d = parseDate(s);
+  d.setUTCDate(d.getUTCDate()+days);
+  return `${d.getUTCFullYear()}-${String(d.getUTCMonth()+1).padStart(2,"0")}-${String(d.getUTCDate()).padStart(2,"0")}`;
+}
+function readCache() {
+  try {
+    const x = JSON.parse(localStorage.getItem("moon_observatory_history") || "{}");
+    return x && typeof x === "object" && !Array.isArray(x) ? x : {};
+  } catch { return {}; }
+}
+function saveCache() {
+  try { localStorage.setItem("moon_observatory_history", JSON.stringify(cache)); } catch {}
+}
+function esc(v) {
+  return String(v ?? "").replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+}
+function makeStars() {
+  const sky = $("sky");
+  // 별 위치는 장식용으로만 무작위 배치되며 데이터와 무관합니다.
+  for (let i=0;i<105;i++) {
+    const s = document.createElement("i");
+    s.className = "star" + (i%13===0 ? " big" : "");
+    s.style.left = (Math.random()*100)+"%";
+    s.style.top = (Math.random()*100)+"%";
+    s.style.setProperty("--dur",(2.1+Math.random()*4.2)+"s");
+    s.style.setProperty("--delay",(-Math.random()*5)+"s");
+    sky.appendChild(s);
+  }
+  const shoot = document.createElement("i");
+  shoot.className = "shooting-star";
+  shoot.style.left = "75%";
+  shoot.style.top = "18%";
+  sky.appendChild(shoot);
+}
+function makeMoonSvg(illumination, phase) {
+  // 실제 밝기 비율에 맞춘 달의 위상 + 표면 질감(분화구/바다/가장자리 음영)
+  const f = Math.max(0, Math.min(100, Number(illumination))) / 100;
+  const waxing = phase.startsWith("Waxing") || phase === "First Quarter" || phase === "New Moon";
+  const rx = Math.abs(1 - 2 * f) * 60;
+  const sweep = f > .5 ? 1 : 0;
+  let lit = "";
+  if (f > .995) lit = "M 0 -60 A 60 60 0 0 1 0 60 A 60 60 0 0 1 0 -60 Z";
+  else if (f > .005) lit = `M 0 -60 A 60 60 0 0 1 0 60 A ${rx.toFixed(2)} 60 0 0 ${sweep} 0 -60 Z`;
+  const id = "moon" + Math.random().toString(36).slice(2, 9);
+  let svg = `<svg class="moon-svg" viewBox="-68 -68 136 136" role="img" aria-label="달 표면과 위상, 밝은 부분 ${Math.round(f*100)}퍼센트">`;
+  svg += `<defs>
+    <radialGradient id="${id}dark" cx="34%" cy="28%" r="78%"><stop offset="0" stop-color="#626779"/><stop offset=".48" stop-color="#303544"/><stop offset="1" stop-color="#080b14"/></radialGradient>
+    <radialGradient id="${id}lit" cx="32%" cy="25%" r="78%"><stop offset="0" stop-color="#fffef4"/><stop offset=".42" stop-color="#deded5"/><stop offset=".78" stop-color="#aaaead"/><stop offset="1" stop-color="#555b68"/></radialGradient>
+    <radialGradient id="${id}crater"><stop offset="0" stop-color="#515665" stop-opacity=".08"/><stop offset=".66" stop-color="#454b58" stop-opacity=".18"/><stop offset=".84" stop-color="#343947" stop-opacity=".52"/><stop offset="1" stop-color="#f5f1df" stop-opacity=".5"/></radialGradient>
+    <radialGradient id="${id}sea"><stop offset="0" stop-color="#606574" stop-opacity=".34"/><stop offset="1" stop-color="#424957" stop-opacity=".06"/></radialGradient>
+    <clipPath id="${id}disc"><circle r="60"/></clipPath>
+    ${lit ? `<clipPath id="${id}light"><path d="${lit}"/></clipPath>` : ''}
+    <filter id="${id}glow"><feGaussianBlur stdDeviation="2.2"/></filter>
+  </defs>`;
+  // 얇은 대기광과 달의 어두운 구체
+  svg += `<circle r="62" fill="#e5e5ff" opacity=".08" filter="url(#${id}glow)"/><g ${waxing ? "" : 'transform="scale(-1 1)"'}><circle r="60" fill="url(#${id}dark)" stroke="#cbd0df" stroke-opacity=".28" stroke-width=".7"/>`;
+  // 어두운 쪽에도 약한 지형을 남겨 완전히 평평한 원처럼 보이지 않게 함
+  svg += `<g clip-path="url(#${id}disc)" opacity=".45" fill="url(#${id}crater)">
+    <circle cx="-24" cy="-29" r="8"/><circle cx="13" cy="-36" r="5"/><circle cx="31" cy="-13" r="10"/><circle cx="-34" cy="10" r="6"/><circle cx="9" cy="18" r="13"/><circle cx="-13" cy="39" r="7"/><circle cx="38" cy="31" r="5"/>
+  </g>`;
+  if (lit) {
+    svg += `<path d="${lit}" fill="url(#${id}lit)"/>`;
+    svg += `<g clip-path="url(#${id}light)"><g clip-path="url(#${id}disc)">
+      <!-- 달의 어두운 현무암 평원(Maria) -->
+      <path d="M-42,-20 C-35,-35 -12,-37 -5,-22 C4,-10 -7,2 -18,2 C-29,5 -37,-5 -42,-20Z" fill="url(#${id}sea)"/>
+      <path d="M8,-5 C15,-19 37,-18 43,-3 C48,10 34,18 22,15 C10,13 4,5 8,-5Z" fill="url(#${id}sea)"/>
+      <path d="M-18,23 C-10,12 4,15 9,27 C13,39 -1,47 -12,40Z" fill="url(#${id}sea)"/>
+      <!-- 분화구의 테두리와 중심 그림자 -->
+      <g fill="url(#${id}crater)">
+        <circle cx="-28" cy="-30" r="7.5"/><circle cx="-8" cy="-38" r="3.7"/><circle cx="17" cy="-31" r="5.4"/>
+        <circle cx="34" cy="-23" r="3.2"/><circle cx="-39" cy="-4" r="4.3"/><circle cx="-18" cy="-9" r="5.8"/>
+        <circle cx="4" cy="-13" r="3.4"/><circle cx="25" cy="5" r="8.2"/><circle cx="-31" cy="18" r="5.2"/>
+        <circle cx="-7" cy="17" r="3.5"/><circle cx="11" cy="34" r="6.8"/><circle cx="36" cy="29" r="4.2"/>
+        <circle cx="-19" cy="42" r="3.1"/><circle cx="43" cy="-5" r="2.7"/><circle cx="2" cy="45" r="2.4"/>
+      </g>
+      <!-- 작은 충돌 흔적과 미세한 표면 반점 -->
+      <g fill="#424957" opacity=".22">
+        <circle cx="-3" cy="-25" r="1.2"/><circle cx="-24" cy="-12" r="1.5"/><circle cx="13" cy="-4" r="1.2"/><circle cx="-43" cy="8" r="1"/><circle cx="19" cy="23" r="1.4"/><circle cx="31" cy="-39" r="1.3"/><circle cx="-3" cy="31" r="1.1"/><circle cx="40" cy="14" r="1.2"/>
+      </g>
+    </g></g>`;
+  }
+  // 가장자리의 어두워짐과 입체감을 주는 얇은 림
+  svg += `<circle r="59.7" fill="none" stroke="#080b14" stroke-opacity=".24" stroke-width="1.4"/></g></svg>`;
+  return svg;
+}
+function renderMoon(data, message = "") {
+  const date = $("moonDate").value;
+  const phaseKo = PHASE_KO[data.phase] || data.phase || "위상 정보를 확인할 수 없어요";
+  const dateText = date.replaceAll("-",".");
+  $("moonContent").innerHTML = `
+    <div class="moon-layout">
+      <div class="moon-stage">${makeMoonSvg(data.illumination,data.phase)}</div>
+      <div>
+        <div class="muted">${esc(dateText)} · 한국 시간 기준 날짜</div>
+        <div class="phase">${esc(phaseKo)}</div>
+        <div><span class="big-number">${esc(data.illumination)}</span><span class="unit">%</span></div>
+        <div class="muted">달의 밝은 부분 비율</div>
+        <span class="status ok">실제 API 응답 확인</span>
+        <div class="stats">
+          <div class="stat"><span class="stat-label">영문 위상</span><span class="stat-value">${esc(data.phase)}</span></div>
+          <div class="stat"><span class="stat-label">관측 날짜</span><span class="stat-value">${esc(date)}</span></div>
+          <div class="stat"><span class="stat-label">API 조회 시각</span><span class="stat-value">${esc(new Date(data.fetchedAt).toLocaleString("ko-KR",{timeZone:"Asia/Seoul"}))}</span></div>
+          <div class="stat"><span class="stat-label">데이터 출처</span><span class="stat-value">USNO</span></div>
+        </div>
+      </div>
+    </div>
+    ${message ? `<div class="notice">${esc(message)}</div>` : ""}
+  `;
+}
+function renderError(message, detail="") {
+  $("moonContent").innerHTML = `<div class="notice error"><strong>${esc(message)}</strong><br>${esc(detail)}<br><br>인터넷 연결을 확인하거나 잠시 후 다시 조회해 주세요.</div>`;
+}
+function renderHistory() {
+  const rows = Object.keys(cache).sort((a,b)=>b.localeCompare(a));
+  if (!rows.length) {
+    $("historyRows").innerHTML = '<tr><td colspan="4">아직 성공한 조회 기록이 없어요.</td></tr>';
+    return;
+  }
+  $("historyRows").innerHTML = rows.slice(0,30).map(date => {
+    const x=cache[date];
+    return `<tr><td><button type="button" class="date-link" data-date="${esc(date)}">${esc(date)}</button></td><td>${esc(PHASE_KO[x.phase] || x.phase)}</td><td>${esc(x.illumination)}%</td><td class="ok">조회 성공</td></tr>`;
+  }).join("");
+  document.querySelectorAll(".date-link").forEach(b=>b.addEventListener("click",()=>{
+    $("moonDate").value=b.dataset.date; loadMoon(b.dataset.date);
+  }));
+}
+async function loadMoon(date) {
+  const requestId = ++currentRequest;
+  $("sourceStatus").textContent = `${date} 달 위상 정보를 조회하고 있어요…`;
+  $("moonContent").innerHTML = '<p class="muted">달의 모습을 불러오는 중…</p>';
+  const url = `${API_BASE}?date=${encodeURIComponent(date)}&coords=36.35,127.38&tz=9`;
+  const controller = new AbortController();
+  const timer = setTimeout(()=>controller.abort(),10000);
+  try {
+    const response = await fetch(url,{signal:controller.signal,cache:"no-store"});
+    if (!response.ok) throw new Error(`API 응답 오류 (${response.status})`);
+    const json = await response.json();
+    const d = json?.properties?.data;
+    if (!d || !d.curphase || d.fracillum == null) throw new Error("응답에 달 위상 또는 밝기 정보가 없어요.");
+    let illumination = Number.parseFloat(String(d.fracillum).replace("%",""));
+    // USNO는 밝기 비율을 0~1 형태로 반환할 수 있어 백분율로 변환합니다.
+    if (String(d.fracillum).includes("%")) { /* 이미 퍼센트 단위 */ }
+    else if (illumination >= 0 && illumination <= 1) illumination *= 100;
+    if (!Number.isFinite(illumination) || illumination<0 || illumination>100) throw new Error("달 밝기 값의 형식이 올바르지 않아요.");
+    const data = {date,phase:String(d.curphase),illumination:Math.round(illumination*10)/10,fetchedAt:new Date().toISOString()};
+    if(requestId!==currentRequest) return;
+    cache[date]=data; saveCache(); renderMoon(data); renderHistory();
+    $("sourceStatus").innerHTML = `<span class="status ok">조회 성공</span> <span class="muted">· USNO API · ${esc(date)}</span>`;
+  } catch(e) {
+    if(requestId!==currentRequest) return;
+    const detail = e.name==="AbortError" ? "요청 시간이 초과되었어요." : (e.message || "데이터를 가져오지 못했어요.");
+    $("sourceStatus").innerHTML = `<span class="status warn">조회 실패</span> <span class="muted">${esc(date)}</span>`;
+    // 이전 성공 기록을 실제 최신 조회 결과인 것처럼 보여 주지 않습니다.
+    renderError("선택한 날짜의 달 정보를 가져오지 못했어요.",detail);
+  } finally { clearTimeout(timer); }
+}
+function selectDate(date) {
+  $("moonDate").value=date;
+  loadMoon(date);
+}
+$("prevBtn").addEventListener("click",()=>selectDate(shiftDate($("moonDate").value,-1)));
+$("nextBtn").addEventListener("click",()=>selectDate(shiftDate($("moonDate").value,1)));
+$("todayBtn").addEventListener("click",()=>selectDate(localDateString()));
+$("refreshBtn").addEventListener("click",()=>loadMoon($("moonDate").value));
+$("moonDate").addEventListener("change",()=>{if($("moonDate").value)loadMoon($("moonDate").value)});
+$("clearHistoryBtn").addEventListener("click",()=>{
+  if(confirm("이 브라우저에 저장된 달 조회 기록을 모두 지울까요?")) {
+    cache={}; saveCache(); renderHistory();
+  }
+});
+document.querySelectorAll("[data-test]").forEach(btn=>btn.addEventListener("click",()=>{
+  const descriptions={
+    timeout:["느린 응답 시험","요청이 제한 시간 안에 끝나지 않았다고 가정했어요. 기존 달 기록은 바뀌지 않습니다."],
+    auth:["접근 거절 시험 (401)","데이터 원천이 접근을 거절했다고 가정했어요. 기존 달 기록은 바뀌지 않습니다."],
+    rate:["요청 제한 시험 (429)","요청 횟수 제한을 받았다고 가정했어요. 잠시 기다렸다 다시 시도합니다."],
+    offline:["인터넷 끊김 시험","네트워크에 연결할 수 없다고 가정했어요. 기존 달 기록은 바뀌지 않습니다."],
+    schema:["데이터 형식 오류 시험","응답 데이터의 모양이 잘못되었다고 가정했어요. 잘못된 값은 저장하지 않습니다."]
+  };
+  const [title,desc]=descriptions[btn.dataset.test];
+  const box=$("testResult");box.hidden=false;box.className="notice";box.innerHTML=`<strong>${esc(title)}</strong><br>${esc(desc)}<br><span class="small">이 시험은 합성 예시이며 실제 API 요청을 실패시키거나 실제 기록을 변경하지 않습니다.</span>`;
+}));
+makeStars();
+const today=localDateString();
+$("moonDate").value=today;
+renderHistory();
+loadMoon(today);
+</script>
+</body>
+</html>
