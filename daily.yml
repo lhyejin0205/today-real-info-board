@@ -1,0 +1,113 @@
+name: daily-moon-record
+
+on:
+  schedule:
+    - cron: '10 15 * * *'   # 매일 한국 시간 00:10 (UTC 15:10)
+  workflow_dispatch:         # 직접 실행 버튼
+
+permissions:
+  contents: write
+
+concurrency:
+  group: daily-moon-record
+  cancel-in-progress: false
+
+jobs:
+  record:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: 오늘 값 가져오기
+        run: |
+          cat > fetch-daily.mjs <<'EOF'
+          import fs from "node:fs";
+
+          // 해군천문대(USNO)에서 오늘(한국 날짜) 달 밝기 값을 가져와 data/ 폴더에 저장합니다. 비밀키는 쓰지 않습니다.
+          const API_BASE = process.env.API_BASE || "https://aa.usno.navy.mil/api/rstt/oneday";
+          const OUT_DIR = process.env.OUT_DIR || "data";
+          const TIMEOUT_MS = Number(process.env.TIMEOUT_MS || 15000);
+          const MAX_TRIES = Number(process.env.MAX_TRIES || 3);
+          const WAIT_MS = Number(process.env.WAIT_MS || 5000);
+
+          const now = new Date();
+          const today = now.toLocaleDateString("sv-SE", { timeZone: "Asia/Seoul" }); // 한국 날짜 (예: 2026-10-19)
+          const url = API_BASE + "?date=" + today + "&coords=36.35,127.38&tz=9";
+          const pad = (n) => String(n).padStart(2, "0");
+
+          async function tryOnce() {
+            let res;
+            try {
+              res = await fetch(url, { signal: AbortSignal.timeout(TIMEOUT_MS) });
+            } catch (e) {
+              return { code: e && (e.name === "TimeoutError" || e.name === "AbortError") ? "timeout" : "offline" };
+            }
+            if (res.status === 401 || res.status === 403) return { code: "auth" };
+            if (res.status === 429) return { code: "rate_limit" };
+            if (!res.ok) return { code: "offline" };
+            let raw;
+            try { raw = await res.json(); } catch (e) { return { code: "schema_error" }; }
+            const d = raw && raw.properties && raw.properties.data;
+            const value = d ? parseInt(d.fracillum, 10) : NaN;
+            const sourceDay = d ? d.year + "-" + pad(d.month) + "-" + pad(d.day) : "";
+            if (!Number.isFinite(value) || sourceDay !== today) return { code: "schema_error" };
+            const dateHeader = res.headers.get("date"); // 원천 서버가 응답한 시각
+            const observed = dateHeader && !isNaN(Date.parse(dateHeader)) ? new Date(dateHeader).toISOString() : null;
+            return {
+              record: {
+                signal_id: "moon-illumination-daejeon",
+                record_date: today,
+                normalized_value: value,
+                unit: "%",
+                source_name: "USNO (미국 해군천문대)",
+                source_url: url,
+                source_observed_at: observed,
+                source_day: sourceDay,
+                phase: d.curphase,
+                raw: String(d.fracillum),
+                fetched_at: new Date().toISOString(),
+                record_timezone: "Asia/Seoul"
+              }
+            };
+          }
+
+          let result;
+          for (let i = 1; i <= MAX_TRIES; i++) {
+            result = await tryOnce();
+            if (result.record || !["timeout", "offline"].includes(result.code)) break;
+            if (i < MAX_TRIES) await new Promise((r) => setTimeout(r, WAIT_MS));
+          }
+
+          fs.mkdirSync(OUT_DIR, { recursive: true });
+          const histPath = OUT_DIR + "/history.json";
+          const statusPath = OUT_DIR + "/status.json";
+          let history = [];
+          try { history = JSON.parse(fs.readFileSync(histPath, "utf8")); } catch (e) { history = []; }
+
+          if (result.record) {
+            // 같은 날짜가 이미 있으면 그 줄을 고치고, 없으면 새 줄을 추가
+            const i = history.findIndex((h) => h.signal_id === result.record.signal_id && h.record_date === result.record.record_date);
+            if (i >= 0) history[i] = result.record; else history.push(result.record);
+            history.sort((a, b) => (a.record_date < b.record_date ? -1 : a.record_date > b.record_date ? 1 : 0));
+            fs.writeFileSync(histPath, JSON.stringify(history, null, 2) + "\n");
+            fs.writeFileSync(statusPath, JSON.stringify({ freshness: "fresh", error_code: "none", attempted_at: now.toISOString() }, null, 2) + "\n");
+            console.log("저장 완료", today, result.record.normalized_value + "%", "(행 " + history.length + "건)");
+          } else {
+            // 실패: 기록(history.json)은 건드리지 않고 상태만 남김
+            fs.writeFileSync(statusPath, JSON.stringify({ freshness: "stale", error_code: result.code, attempted_at: now.toISOString() }, null, 2) + "\n");
+            console.log("가져오기 실패:", result.code, "- 기존 기록은 그대로 둠 (행 " + history.length + "건)");
+          }
+          EOF
+          node fetch-daily.mjs
+
+      - name: 기록 저장
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add data
+          git diff --cached --quiet || git commit -m "daily record"
+          git push
